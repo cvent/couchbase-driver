@@ -251,3 +251,8 @@ Enum for Database operations
 | REMOVE | <code>string</code> | <code>&quot;remove&quot;</code> | Remove operation |
 | NOOP | <code>string</code> | <code>&quot;noop&quot;</code> | No operation or action |
 
+## License
+
+Copyright 2016 Bojan D.
+
+Licensed under the MIT License.
