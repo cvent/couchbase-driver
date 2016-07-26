@@ -58,7 +58,7 @@ function transform(doc) {
   return {
     value: doc,
     action: Driver.DBOPS.UPSERT
- };
+  };
 }
 
 driver.atomic('my_doc_key', transform, (err, res) => {
