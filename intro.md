@@ -80,6 +80,6 @@ console.dir(result.value); // document
 Note that with Promise style call and multiple keys we do not get misses.
 
 ```js
-const results = await driver.get(['mykey1', mykey2]);
+const results = await driver.get(['mykey1', 'mykey2']);
 console.dir(_.map(results, 'value')); // array of documents
 ```
