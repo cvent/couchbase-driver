@@ -2,6 +2,15 @@
 
 An improved version of the official Couchbase driver.
 
+### Changes:
+
+* `get` works on a single key or an array of keys, calling `Bucket.getMulti` if appropriate. Automatically handles
+*key not found* errors and doesn't return an error in that scenario. In case of multiple keys, optionally returns an
+array of missing keys.
+* `remove` also handles *key not found* errors more gracefully.
+* adds `atomic` function that tries to do perform `get` + `transform` + `upsert` utilizing `CAS` in one step until
+success or maximum retries have occurred.
+
 ## API Reference
 
 <a name="OPERATIONS"></a>
@@ -115,7 +124,7 @@ If the upsert fails due to a CAS value error, the whole process is retried.
 | Param | Type | Description |
 | --- | --- | --- |
 | key | <code>String</code> | document key |
-| transform | <code>function</code> | synchronous function to be performend on the document value |
+| transform | <code>function</code> | synchronous function to be performend on the document value. Function accepts the                               document or <code>undefined</code> if the document was not found. The function                               should perform any necessary mutation and return an object with <code>value</code>                               and <code>action</code>. <code>value</code> is the new value of the document.                               <code>action</code> should be one of <code>Driver.DBOPS</code> specifying the action                               to take with the new value. |
 | options | <code>String</code> | Options |
 | options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>5</code>. |
 | options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>0</code>. |
@@ -125,7 +134,10 @@ If the upsert fails due to a CAS value error, the whole process is retried.
 ```js
 function transform(doc) {
   doc.foo = 'bar';
-  return Driver.DBOPS.UPSERT;
+  return {
+    value: doc,
+    action: Driver.DBOPS.UPSERT
+  };
 }
 
 driver.atomic('my_doc_key', transform, (err, res) => {
