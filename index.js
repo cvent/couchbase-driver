@@ -1,1 +1,1 @@
-module.exports = require('./dist/index').create;
+module.exports = require('./dist/index').default;

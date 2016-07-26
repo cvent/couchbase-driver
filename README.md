@@ -251,26 +251,3 @@ Enum for Database operations
 | REMOVE | <code>string</code> | <code>&quot;remove&quot;</code> | Remove operation |
 | NOOP | <code>string</code> | <code>&quot;noop&quot;</code> | No operation or action |
 
-<a name="create"></a>
-
-### create(bucket, options) ⇒ <code>[Driver](#Driver)</code>
-Create a Driver object by wrapping the Couchbase bucket and creates a new <code>Driver</code> instance and
-adds <code>Promise</code> support to the instance.
-
-**Kind**: global function  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| bucket | <code>Object</code> | The Couchbase <code>Bucket</code> instance to wrap. |
-| options | <code>Object</code> | Options |
-| options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>5</code>. |
-| options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>0</code>. |
-
-**Example**  
-```js
-const couchbase = require('couchbase');
-const Driver = require('couchbase-driver');
-const cluster = new couchbase.Cluster('couchbase://127.0.0.1');
-const bucket = cluster.openBucket('default');
-const driver = Driver.create(bucket);
-```

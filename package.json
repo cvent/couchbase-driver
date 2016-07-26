@@ -21,9 +21,7 @@
   "scripts": {
     "test": "npm run dist && TEST_USE_COUCHBASE_MOCK=true ava -v -s",
     "cover": "nyc mocha",
-    "docs": "npm run mddocs && npm run jsdoc",
-    "mddocs": "(cat intro.md >> readme.hbs) && (echo \"\n## API Reference\n\n{{>all-docs~}}\" | tee -a readme.hbs) && (jsdoc2md \"lib/**/*.js\" --heading-depth 3 --template readme.hbs > README.md) && rm readme.hbs",
-    "jsdoc": "jsdoc -c jsdoc.json -R intro.md",
+    "docs": "./docs.sh",
     "dist": "node ./node_modules/babel-cli/bin/babel.js lib --out-dir dist",
     "prepublish": "npm run dist"
   },
