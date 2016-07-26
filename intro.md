@@ -4,7 +4,7 @@ An improved version of the official Couchbase driver.
 
 ## Installation
 
-`npm install json-schema-deref`
+`npm install couchbase-driver`
 
 ## Overview
 
@@ -16,12 +16,15 @@ array of missing keys.
 * `remove` also handles *key not found* errors more gracefully.
 * adds `atomic` function that tries to do perform `get` + `transform` + specified database operation utilizing `CAS`
 in one step until success or maximum retries have occurred.
+* adds <code>Promise</code> support so that functions call be called with either Node-style callbacks or with Promises.
 
 ## Usage
 
 Creating:
 
 ```js
+const couchbase = require('couchbase');
+const Driver = require('couchbase-driver');
 const cluster = new couchbase.Cluster('couchbase://127.0.0.1');
 const bucket = cluster.openBucket('default');
 const driver = Driver.create(bucket);
@@ -65,4 +68,18 @@ driver.atomic('my_doc_key', transform, (err, res) => {
   if(err) return console.dir(err);
   console.dir(res);
 });
+```
+
+With promises:
+
+```js
+const result = await driver.get('mykey');
+console.dir(result.value); // document
+```
+
+Note that with Promise style call and multiple keys we do not get misses.
+
+```js
+const results = await driver.get(['mykey1', mykey2]);
+console.dir(_.map(results, 'value')); // array of documents
 ```

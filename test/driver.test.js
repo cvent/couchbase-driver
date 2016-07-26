@@ -2,7 +2,7 @@ import * as couchbase from 'couchbase';
 import asl from 'async';
 import test from 'ava';
 import _ from 'lodash';
-import Driver from '../dist';
+import create from '../';
 
 const mockData = [{
   key: 'driver_test_mock_1',
@@ -40,7 +40,7 @@ test.cb.before(t => {
     bucket.manager().flush(err => {
       t.falsy(err);
 
-      driver = Driver.create(bucket);
+      driver = create(bucket);
 
       asl.each(mockData, (data, eacb) => {
         bucket.upsert(data.key, data.value, eacb);
@@ -155,6 +155,65 @@ test.cb('should get all of documents using the custom get', t => {
     expected.push({ somedata: 1234 });
     t.deepEqual(actual, expected);
 
+    t.end();
+  });
+});
+
+test('promised: should get a document using the custom get', async t => {
+  t.plan(5);
+
+  const res = await driver.get(mockData[0].key);
+  t.truthy(res);
+  t.true(typeof res === 'object');
+  t.true(typeof res.cas === 'object');
+  t.true(typeof res.value === 'object');
+  t.deepEqual(res.value, mockData[0].value);
+});
+
+test.cb('promised: should get a document using the custom get as then() style call', t => {
+  driver.get(mockData[0].key).then(res => {
+    t.truthy(res);
+    t.true(typeof res === 'object');
+    t.true(typeof res.cas === 'object');
+    t.true(typeof res.value === 'object');
+    t.deepEqual(res.value, mockData[0].value);
+    t.end();
+  });
+});
+
+test('promised: should get an array of documents using the custom get', async t => {
+  t.plan(3);
+
+  const keys = _.map(mockData, 'key');
+  const results = await driver.get(keys);
+  t.truthy(results);
+  t.true(Array.isArray(results));
+
+  const actual = _.map(results, 'value');
+  const expected = _.map(mockData, 'value');
+
+  t.deepEqual(actual, expected);
+});
+
+test('promised: should get an array of documents using the custom get and not get misses', async t => {
+  t.plan(3);
+  const keys = ['driver_test_mock_1', 'driver_test_mock_2', 'driver_test_mock_123', 'driver_test_mock_3'];
+  const results = await driver.get(keys);
+  t.truthy(results);
+  t.true(Array.isArray(results));
+  const actual = _.map(results, 'value');
+  const expected = _.map(mockData, 'value');
+  t.deepEqual(actual, expected);
+});
+
+test.cb('promised: should get an array of documents using the custom get and not get misses using then() style', t => {
+  const keys = ['driver_test_mock_1', 'driver_test_mock_2', 'driver_test_mock_123', 'driver_test_mock_3'];
+  driver.get(keys).then(results => {
+    t.truthy(results);
+    t.true(Array.isArray(results));
+    const actual = _.map(results, 'value');
+    const expected = _.map(mockData, 'value');
+    t.deepEqual(actual, expected);
     t.end();
   });
 });

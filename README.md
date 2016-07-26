@@ -4,7 +4,7 @@ An improved version of the official Couchbase driver.
 
 ## Installation
 
-`npm install json-schema-deref`
+`npm install couchbase-driver`
 
 ## Overview
 
@@ -16,12 +16,15 @@ array of missing keys.
 * `remove` also handles *key not found* errors more gracefully.
 * adds `atomic` function that tries to do perform `get` + `transform` + specified database operation utilizing `CAS`
 in one step until success or maximum retries have occurred.
+* adds <code>Promise</code> support so that functions call be called with either Node-style callbacks or with Promises.
 
 ## Usage
 
 Creating:
 
 ```js
+const couchbase = require('couchbase');
+const Driver = require('couchbase-driver');
 const cluster = new couchbase.Cluster('couchbase://127.0.0.1');
 const bucket = cluster.openBucket('default');
 const driver = Driver.create(bucket);
@@ -67,65 +70,73 @@ driver.atomic('my_doc_key', transform, (err, res) => {
 });
 ```
 
+With promises:
+
+```js
+const result = await driver.get('mykey');
+console.dir(result.value); // document
+```
+
+Note that with Promise style call and multiple keys we do not get misses.
+
+```js
+const results = await driver.get(['mykey1', mykey2]);
+console.dir(_.map(results, 'value')); // array of documents
+```
+
 ## API Reference
 
-<a name="OPERATIONS"></a>
+<a name="Driver"></a>
 
-### OPERATIONS
+### Driver
+A simple alternative driver for Couchbase that wraps the `Bucket` from existing driver and improves
+<code>get</code> and <code>remove</code> methods and adds <code>atomic</code> method and <code>Promise</code>
+support.
+
+**Kind**: global class  
+
+* [Driver](#Driver)
+    * [new Driver(bucket, options)](#new_Driver_new)
+    * _instance_
+        * [.OPERATIONS](#Driver+OPERATIONS)
+        * [.get(keys, options, fn)](#Driver+get)
+        * [.remove(key, options, fn)](#Driver+remove)
+        * [.atomic(key, transform, options, fn)](#Driver+atomic)
+    * _static_
+        * [.OPERATIONS](#Driver.OPERATIONS)
+        * [.isKeyNotFound(err)](#Driver.isKeyNotFound)
+
+<a name="new_Driver_new"></a>
+
+#### new Driver(bucket, options)
+Constructs the new instance. This should not be called directly, but rather use <code>create()</code>.
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| bucket | <code>Object</code> | the Couchbase <code>Bucket</code> |
+| options | <code>Object</code> | Options |
+| options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>5</code>. |
+| options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>0</code>. |
+| options.missing | <code>Boolean</code> | Whether to return missing. If <code>false</code> Does not return.                                    Useful for certain contexts. |
+
+<a name="Driver+OPERATIONS"></a>
+
+#### driver.OPERATIONS
 Get operation enums
 
-**Kind**: global variable  
+**Kind**: instance property of <code>[Driver](#Driver)</code>  
 **Example**  
 ```js
 driver.DBOPS.UPSERT;
 ```
-<a name="OPERATIONS"></a>
+<a name="Driver+get"></a>
 
-### OPERATIONS
-Get operation enums
-
-**Kind**: global variable  
-**Example**  
-```js
-Driver.DBOPS.UPSERT;
-```
-<a name="DBOPS"></a>
-
-### DBOPS : <code>enum</code>
-Enum for Database operations
-
-**Kind**: global constant  
-**Read only**: true  
-**Properties**
-
-| Name | Type | Default |
-| --- | --- | --- |
-| UPSERT | <code>string</code> | <code>&quot;upsert&quot;</code> | 
-| REMOVE | <code>string</code> | <code>&quot;remove&quot;</code> | 
-| NOOP | <code>string</code> | <code>&quot;noop&quot;</code> | 
-
-<a name="isKeyNotFound"></a>
-
-### isKeyNotFound(err)
-Determines if error is a "key not found" error
-
-**Kind**: global function  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| err | <code>Error</code> | the error to check |
-
-**Example**  
-```js
-Driver.isKeyNotFound(err);
-```
-<a name="get"></a>
-
-### get(keys, options, fn)
+#### driver.get(keys, options, fn)
 A simplified get. Properly handles key not found errors. In case of multi call, returns array of found
 and an array of misses.
 
-**Kind**: global function  
+**Kind**: instance method of <code>[Driver](#Driver)</code>  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -149,12 +160,12 @@ driver.get(['my_doc_key_1', 'my_doc_key_2', 'my_missing_doc_key_3'], (err, resul
   console.dir(res.value);
 });
 ```
-<a name="remove"></a>
+<a name="Driver+remove"></a>
 
-### remove(key, options, fn)
+#### driver.remove(key, options, fn)
 Our implementation of <code>Bucket.remove</code> that properly ignores key not found errors.
 
-**Kind**: global function  
+**Kind**: instance method of <code>[Driver](#Driver)</code>  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -168,14 +179,14 @@ driver.remove('my_doc_key', (err, res) => {
   if (err) return console.log(err);
 });
 ```
-<a name="atomic"></a>
+<a name="Driver+atomic"></a>
 
-### atomic(key, transform, options, fn)
+#### driver.atomic(key, transform, options, fn)
 Performs an "atomic" operation where it tries to first get the document given the <code>key</code>, then perform
 the function <code>transform</code> on the value and then write using the CAS value in the <code>upsert</code>.
 If the upsert fails due to a CAS value error, the whole process is retried.
 
-**Kind**: global function  
+**Kind**: instance method of <code>[Driver](#Driver)</code>  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -201,9 +212,49 @@ driver.atomic('my_doc_key', transform, (err, res) => {
   console.dir(res);
 });
 ```
+<a name="Driver.OPERATIONS"></a>
+
+#### Driver.OPERATIONS
+Get operation enums
+
+**Kind**: static property of <code>[Driver](#Driver)</code>  
+**Example**  
+```js
+Driver.DBOPS.UPSERT;
+```
+<a name="Driver.isKeyNotFound"></a>
+
+#### Driver.isKeyNotFound(err)
+Determines if error is a "key not found" error
+
+**Kind**: static method of <code>[Driver](#Driver)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| err | <code>Error</code> | the error to check |
+
+**Example**  
+```js
+Driver.isKeyNotFound(err);
+```
+<a name="DBOPS"></a>
+
+### DBOPS : <code>enum</code>
+Enum for Database operations
+
+**Kind**: global constant  
+**Read only**: true  
+**Properties**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| UPSERT | <code>string</code> | <code>&quot;upsert&quot;</code> | Upsert operation |
+| REMOVE | <code>string</code> | <code>&quot;remove&quot;</code> | Remove operation |
+| NOOP | <code>string</code> | <code>&quot;noop&quot;</code> | No operation or action |
+
 <a name="create"></a>
 
-### create(bucket, options) ⇒ <code>Driver</code>
+### create(bucket, options) ⇒ <code>[Driver](#Driver)</code>
 Create a Driver object by wrapping the Couchbase bucket and returning a new <code>Driver</code> instance.
 
 **Kind**: global function  
@@ -217,6 +268,8 @@ Create a Driver object by wrapping the Couchbase bucket and returning a new <cod
 
 **Example**  
 ```js
+const couchbase = require('couchbase');
+const Driver = require('couchbase-driver');
 const cluster = new couchbase.Cluster('couchbase://127.0.0.1');
 const bucket = cluster.openBucket('default');
 const driver = Driver.create(bucket);
