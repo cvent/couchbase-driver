@@ -90,8 +90,7 @@ console.dir(_.map(results, 'value')); // array of documents
 
 ### Driver
 A simple alternative driver for Couchbase that wraps the `Bucket` from existing driver and improves
-<code>get</code> and <code>remove</code> methods and adds <code>atomic</code> method and <code>Promise</code>
-support.
+<code>get</code> and <code>remove</code> methods and adds <code>atomic</code> method.
 
 **Kind**: global class  
 
@@ -255,7 +254,8 @@ Enum for Database operations
 <a name="create"></a>
 
 ### create(bucket, options) ⇒ <code>[Driver](#Driver)</code>
-Create a Driver object by wrapping the Couchbase bucket and returning a new <code>Driver</code> instance.
+Create a Driver object by wrapping the Couchbase bucket and creates a new <code>Driver</code> instance and
+adds <code>Promise</code> support to the instance.
 
 **Kind**: global function  
 
