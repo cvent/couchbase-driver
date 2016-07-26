@@ -10,18 +10,50 @@ An improved version of the official Couchbase driver.
 Get operation enums
 
 **Kind**: global variable  
+**Example**  
+```js
+driver.DBOPS.UPSERT;
+```
 <a name="OPERATIONS"></a>
 
 ### OPERATIONS
 Get operation enums
 
 **Kind**: global variable  
+**Example**  
+```js
+Driver.DBOPS.UPSERT;
+```
+<a name="DBOPS"></a>
+
+### DBOPS : <code>enum</code>
+Enum for Database operations
+
+**Kind**: global constant  
+**Read only**: true  
+**Properties**
+
+| Name | Type | Default |
+| --- | --- | --- |
+| UPSERT | <code>string</code> | <code>&quot;upsert&quot;</code> | 
+| REMOVE | <code>string</code> | <code>&quot;remove&quot;</code> | 
+| NOOP | <code>string</code> | <code>&quot;noop&quot;</code> | 
+
 <a name="isKeyNotFound"></a>
 
-### isKeyNotFound()
+### isKeyNotFound(err)
 Determines if error is a "key not found" error
 
 **Kind**: global function  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| err | <code>Error</code> | the error to check |
+
+**Example**  
+```js
+Driver.isKeyNotFound(err);
+```
 <a name="get"></a>
 
 ### get(keys, options, fn)
@@ -37,19 +69,40 @@ and an array of misses.
 | options.missing | <code>Boolean</code> | Whether to return missing. If <code>false</code> Does not return.                                    Useful for certain contexts. This option takes presidence over the one set in                                    constructor. |
 | fn | <code>function</code> | callback |
 
+**Example**  
+```js
+driver.get('my_doc_key', (err, res) => {
+  if (err) return console.log(err)
+  console.dir(res.value)
+}
+```
+**Example**  
+```js
+driver.get(['my_doc_key_1', 'my_doc_key_2', 'my_missing_doc_key_3'], (err, results, missing) => {
+  if (err) return console.log(err);
+  if (mising.length > 0) console.dir(missing); // ['my_missing_doc_key_3']
+  console.dir(res.value);
+}
+```
 <a name="remove"></a>
 
 ### remove(key, options, fn)
-Our implementation of Bucket.remove that properly ignores key not found errors.
+Our implementation of <code>Bucket.remove</code> that properly ignores key not found errors.
 
 **Kind**: global function  
 
 | Param | Type | Description |
 | --- | --- | --- |
 | key | <code>String</code> | document key to remove |
-| options | <code>Object</code> | Options to pass to Bucket.remove |
+| options | <code>Object</code> | Options to pass to <code>Bucket.remove</code> |
 | fn | <code>function</code> | callback |
 
+**Example**  
+```js
+driver.remove('my_doc_key', (err, res) => {
+  if (err) return console.log(err);
+}
+```
 <a name="atomic"></a>
 
 ### atomic(key, transform, options, fn)
@@ -68,6 +121,18 @@ If the upsert fails due to a CAS value error, the whole process is retried.
 | options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>0</code>. |
 | fn | <code>function</code> | callback |
 
+**Example**  
+```js
+function transform(doc) {
+  doc.foo = 'bar';
+  return Driver.DBOPS.UPSERT;
+}
+
+driver.atomic('my_doc_key', transform, (err, res) => {
+  if(err) return console.dir(err);
+  console.dir(res);
+});
+```
 <a name="create"></a>
 
 ### create(bucket, options) ⇒ <code>Driver</code>
