@@ -2,7 +2,7 @@ import * as couchbase from 'couchbase';
 import asl from 'async';
 import test from 'ava';
 import _ from 'lodash';
-import create from '../';
+import { Driver, create } from '../';
 
 const mockData = [{
   key: 'driver_test_mock_1',
@@ -34,13 +34,28 @@ let bucket = null;
 let driver = null;
 
 test.cb.before(t => {
-  bucket = cluster.openBucket('lounge_test', err => {
+  // check exports
+  t.true(typeof create === 'function');
+  t.truthy(Driver);
+  t.truthy(Driver.OPERATIONS);
+  t.truthy(Driver.OPERATIONS.UPSERT);
+  t.truthy(Driver.OPERATIONS.REMOVE);
+  t.truthy(Driver.OPERATIONS.NOOP);
+
+  bucket = cluster.openBucket('couchbase_driver_test', err => {
     t.falsy(err);
 
     bucket.manager().flush(err => {
       t.falsy(err);
 
       driver = create(bucket);
+
+      // check creation
+      t.truthy(driver);
+      t.truthy(driver.OPERATIONS);
+      t.truthy(driver.OPERATIONS.UPSERT);
+      t.truthy(driver.OPERATIONS.REMOVE);
+      t.truthy(driver.OPERATIONS.NOOP);
 
       asl.each(mockData, (data, eacb) => {
         bucket.upsert(data.key, data.value, eacb);

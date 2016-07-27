@@ -24,7 +24,7 @@ Creating:
 
 ```js
 const couchbase = require('couchbase');
-const create = require('couchbase-driver');
+const create = require('couchbase-driver').create;
 const cluster = new couchbase.Cluster('couchbase://127.0.0.1');
 const bucket = cluster.openBucket('default');
 const driver = create(bucket);
@@ -60,7 +60,7 @@ function transform(doc) {
   doc.foo = 'bar';
   return {
     value: doc,
-    action: Driver.DBOPS.UPSERT
+    action: Driver.OPERATIONS.UPSERT
   };
 }
 

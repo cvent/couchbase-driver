@@ -24,7 +24,7 @@ Creating:
 
 ```js
 const couchbase = require('couchbase');
-const create = require('couchbase-driver');
+const create = require('couchbase-driver').create;
 const cluster = new couchbase.Cluster('couchbase://127.0.0.1');
 const bucket = cluster.openBucket('default');
 const driver = create(bucket);
@@ -60,7 +60,7 @@ function transform(doc) {
   doc.foo = 'bar';
   return {
     value: doc,
-    action: Driver.DBOPS.UPSERT
+    action: Driver.OPERATIONS.UPSERT
   };
 }
 
@@ -127,7 +127,7 @@ Get operation enums
 **Kind**: instance property of <code>[Driver](#Driver)</code>  
 **Example**  
 ```js
-driver.DBOPS.UPSERT;
+driver.OPERATIONS.UPSERT;
 ```
 <a name="Driver+get"></a>
 
@@ -190,7 +190,7 @@ If the upsert fails due to a CAS value error, the whole process is retried.
 | Param | Type | Description |
 | --- | --- | --- |
 | key | <code>String</code> | document key |
-| transform | <code>function</code> | synchronous function to be performend on the document value. Function accepts the                               document or <code>undefined</code> if the document was not found. The function                               should perform any necessary mutation and return an object with <code>value</code>                               and <code>action</code>. <code>value</code> is the new value of the document.                               <code>action</code> should be one of <code>Driver.DBOPS</code> specifying the action                               to take with the new value. |
+| transform | <code>function</code> | synchronous function to be performend on the document value. Function accepts the                               document or <code>undefined</code> if the document was not found. The function                               should perform any necessary mutation and return an object with <code>value</code>                               and <code>action</code>. <code>value</code> is the new value of the document.                               <code>action</code> should be one of <code>OPERATIONS</code> specifying the action                               to take with the new value. |
 | options | <code>String</code> | Options |
 | options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>5</code>. |
 | options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>0</code>. |
@@ -202,7 +202,7 @@ function transform(doc) {
   doc.foo = 'bar';
   return {
     value: doc,
-    action: Driver.DBOPS.UPSERT
+    action: OPERATIONS.UPSERT
   };
 }
 
@@ -219,7 +219,8 @@ Get operation enums
 **Kind**: static property of <code>[Driver](#Driver)</code>  
 **Example**  
 ```js
-Driver.DBOPS.UPSERT;
+const Driver = require('couchbase-driver').Driver;
+console.log(Driver.OPERATIONS.UPSERT);
 ```
 <a name="Driver.isKeyNotFound"></a>
 
@@ -236,9 +237,9 @@ Determines if error is a "key not found" error
 ```js
 Driver.isKeyNotFound(err);
 ```
-<a name="DBOPS"></a>
+<a name="OPERATIONS"></a>
 
-### DBOPS : <code>enum</code>
+### OPERATIONS : <code>enum</code>
 Enum for Database operations
 
 **Kind**: global constant  
@@ -269,7 +270,7 @@ adds <code>Promise</code> support to the instance.
 **Example**  
 ```js
 const couchbase = require('couchbase');
-const create = require('couchbase-driver');
+const create = require('couchbase-driver').create;
 const cluster = new couchbase.Cluster('couchbase://127.0.0.1');
 const bucket = cluster.openBucket('default');
 const driver = create(bucket);
