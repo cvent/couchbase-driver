@@ -117,7 +117,7 @@ Constructs the new instance. This should not be called directly, but rather use 
 | options | <code>Object</code> | Options |
 | options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>5</code>. |
 | options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>0</code>. |
-| options.missing | <code>Boolean</code> | Whether to return missing. If <code>false</code> Does not return.                                    Useful for certain contexts. |
+| options.missing | <code>Boolean</code> | Whether to return missing. If <code>false</code> Does not return.                                    Useful for certain contexts. Defalt: <code>true</code>. |
 
 <a name="Driver+OPERATIONS"></a>
 
@@ -141,7 +141,7 @@ and an array of misses.
 | --- | --- | --- |
 | keys | <code>String</code> &#124; <code>Array</code> | a single key or multiple keys |
 | options | <code>Object</code> | Options for bucket <code>get</code> function |
-| options.missing | <code>Boolean</code> | Whether to return missing. If <code>false</code> Does not return.                                    Useful for certain contexts. This option takes presidence over the one set in                                    constructor. |
+| options.missing | <code>Boolean</code> | Whether to return missing. If <code>false</code> Does not return.                                    Useful for certain contexts. This option takes presidence over the one set in                                    constructor. Default: <code>true</code>. |
 | fn | <code>function</code> | callback |
 
 **Example**  
