@@ -24,10 +24,10 @@ Creating:
 
 ```js
 const couchbase = require('couchbase');
-const Driver = require('couchbase-driver');
+const create = require('couchbase-driver');
 const cluster = new couchbase.Cluster('couchbase://127.0.0.1');
 const bucket = cluster.openBucket('default');
-const driver = Driver.create(bucket);
+const driver = create(bucket);
 ```
 
 Simple retrieval:
@@ -47,7 +47,7 @@ Getting multiple documents:
 driver.get(['my_doc_key_1', 'my_doc_key_2', 'my_missing_doc_key_3'], (err, results, missing) => {
   if (err) return console.log(err);
   if (mising.length > 0) console.dir(missing); // ['my_missing_doc_key_3']
-    console.dir(res.value);
+  console.dir(res.value);
 });
 ```
 
