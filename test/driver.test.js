@@ -2,7 +2,7 @@ import * as couchbase from 'couchbase';
 import asl from 'async';
 import test from 'ava';
 import _ from 'lodash';
-import { Driver, create } from '../';
+import Driver from '../';
 
 const mockData = [{
   key: 'driver_test_mock_1',
@@ -35,7 +35,6 @@ let driver = null;
 
 test.cb.before(t => {
   // check exports
-  t.true(typeof create === 'function');
   t.truthy(Driver);
   t.truthy(Driver.OPERATIONS);
   t.truthy(Driver.OPERATIONS.UPSERT);
@@ -48,7 +47,7 @@ test.cb.before(t => {
     bucket.manager().flush(err => {
       t.falsy(err);
 
-      driver = create(bucket);
+      driver = Driver.create(bucket);
 
       // check creation
       t.truthy(driver);

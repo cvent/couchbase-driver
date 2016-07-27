@@ -24,10 +24,10 @@ Creating:
 
 ```js
 const couchbase = require('couchbase');
-const create = require('couchbase-driver').create;
+const Driver = require('couchbase-driver');
 const cluster = new couchbase.Cluster('couchbase://127.0.0.1');
 const bucket = cluster.openBucket('default');
-const driver = create(bucket);
+const driver = Driver.create(bucket);
 ```
 
 Simple retrieval:

@@ -24,10 +24,10 @@ Creating:
 
 ```js
 const couchbase = require('couchbase');
-const create = require('couchbase-driver').create;
+const Driver = require('couchbase-driver');
 const cluster = new couchbase.Cluster('couchbase://127.0.0.1');
 const bucket = cluster.openBucket('default');
-const driver = create(bucket);
+const driver = Driver.create(bucket);
 ```
 
 Simple retrieval:
@@ -103,12 +103,14 @@ A simple alternative driver for Couchbase that wraps the `Bucket` from existing 
         * [.atomic(key, transform, options, fn)](#Driver+atomic)
     * _static_
         * [.OPERATIONS](#Driver.OPERATIONS)
+        * [.OPERATIONS](#Driver.OPERATIONS) : <code>enum</code>
         * [.isKeyNotFound(err)](#Driver.isKeyNotFound)
+        * [.create(bucket, options)](#Driver.create) ⇒ <code>[Driver](#Driver)</code>
 
 <a name="new_Driver_new"></a>
 
 #### new Driver(bucket, options)
-Constructs the new instance. This should not be called directly, but rather use <code>create()</code>.
+Constructs the new instance. This should not be called directly, but rather use <code>Driver.create()</code>.
 
 
 | Param | Type | Description |
@@ -127,7 +129,9 @@ Get operation enums
 **Kind**: instance property of <code>[Driver](#Driver)</code>  
 **Example**  
 ```js
-driver.OPERATIONS.UPSERT;
+const Driver = require('couchbase-driver');
+const driver = Driver.create(bucket);
+console.log(driver.OPERATIONS.UPSERT);
 ```
 <a name="Driver+get"></a>
 
@@ -219,9 +223,24 @@ Get operation enums
 **Kind**: static property of <code>[Driver](#Driver)</code>  
 **Example**  
 ```js
-const Driver = require('couchbase-driver').Driver;
+const Driver = require('couchbase-driver');
 console.log(Driver.OPERATIONS.UPSERT);
 ```
+<a name="Driver.OPERATIONS"></a>
+
+#### Driver.OPERATIONS : <code>enum</code>
+Enum for Database operations
+
+**Kind**: static constant of <code>[Driver](#Driver)</code>  
+**Read only**: true  
+**Properties**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| UPSERT | <code>string</code> | <code>&quot;upsert&quot;</code> | Upsert operation |
+| REMOVE | <code>string</code> | <code>&quot;remove&quot;</code> | Remove operation |
+| NOOP | <code>string</code> | <code>&quot;noop&quot;</code> | No operation or action |
+
 <a name="Driver.isKeyNotFound"></a>
 
 #### Driver.isKeyNotFound(err)
@@ -237,28 +256,13 @@ Determines if error is a "key not found" error
 ```js
 Driver.isKeyNotFound(err);
 ```
-<a name="OPERATIONS"></a>
+<a name="Driver.create"></a>
 
-### OPERATIONS : <code>enum</code>
-Enum for Database operations
-
-**Kind**: global constant  
-**Read only**: true  
-**Properties**
-
-| Name | Type | Default | Description |
-| --- | --- | --- | --- |
-| UPSERT | <code>string</code> | <code>&quot;upsert&quot;</code> | Upsert operation |
-| REMOVE | <code>string</code> | <code>&quot;remove&quot;</code> | Remove operation |
-| NOOP | <code>string</code> | <code>&quot;noop&quot;</code> | No operation or action |
-
-<a name="create"></a>
-
-### create(bucket, options) ⇒ <code>[Driver](#Driver)</code>
+#### Driver.create(bucket, options) ⇒ <code>[Driver](#Driver)</code>
 Create a Driver object by wrapping the Couchbase bucket and creates a new <code>Driver</code> instance and
 adds <code>Promise</code> support to the instance.
 
-**Kind**: global function  
+**Kind**: static method of <code>[Driver](#Driver)</code>  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -270,10 +274,10 @@ adds <code>Promise</code> support to the instance.
 **Example**  
 ```js
 const couchbase = require('couchbase');
-const create = require('couchbase-driver').create;
+const Driver = require('couchbase-driver');
 const cluster = new couchbase.Cluster('couchbase://127.0.0.1');
 const bucket = cluster.openBucket('default');
-const driver = create(bucket);
+const driver = Driver.create(bucket);
 ```
 ## License
 
