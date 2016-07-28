@@ -14,7 +14,7 @@ A simple alternative driver for [Couchbase](http://docs.couchbase.com/sdk-api/co
 *key not found* errors and doesn't return an error in that scenario. In case of multiple keys, optionally returns an
 array of missing keys.
 * `remove` also handles *key not found* errors more gracefully.
-* adds `atomic` function that tries to do perform `get` + `transform` + specified database operation utilizing `CAS`
+* adds `atomic` function that tries to do perform `getAndLock` + `transform` + specified database operation utilizing `CAS`
 in one step until success or maximum retries have occurred.
 * adds <code>Promise</code> support so that functions call be called with either Node-style callbacks or with Promises.
 
@@ -99,6 +99,7 @@ A simple alternative driver for Couchbase that wraps the `Bucket` from existing 
     * _instance_
         * [.OPERATIONS](#Driver+OPERATIONS)
         * [.get(keys, options, fn)](#Driver+get)
+        * [.getAndLock(key, options, fn)](#Driver+getAndLock)
         * [.remove(key, options, fn)](#Driver+remove)
         * [.atomic(key, transform, options, fn)](#Driver+atomic)
     * _static_
@@ -161,6 +162,26 @@ driver.get(['my_doc_key_1', 'my_doc_key_2', 'my_missing_doc_key_3'], (err, resul
   if (err) return console.log(err);
   if (mising.length > 0) console.dir(missing); // ['my_missing_doc_key_3']
   console.dir(res.value);
+});
+```
+<a name="Driver+getAndLock"></a>
+
+#### driver.getAndLock(key, options, fn)
+Our implementation of <code>Bucket.getAndLock</code> that properly ignores key not found errors.
+
+**Kind**: instance method of <code>[Driver](#Driver)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| key | <code>String</code> | document key to get and lock |
+| options | <code>Object</code> | Options to pass to <code>Bucket.getAndLock</code> |
+| fn | <code>function</code> | callback |
+
+**Example**  
+```js
+driver.getAndLock('my_doc_key', (err, res) => {
+  if (err) return console.log(err);
+  console.dir(res.value)
 });
 ```
 <a name="Driver+remove"></a>

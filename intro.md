@@ -14,7 +14,7 @@ A simple alternative driver for [Couchbase](http://docs.couchbase.com/sdk-api/co
 *key not found* errors and doesn't return an error in that scenario. In case of multiple keys, optionally returns an
 array of missing keys.
 * `remove` also handles *key not found* errors more gracefully.
-* adds `atomic` function that tries to do perform `get` + `transform` + specified database operation utilizing `CAS`
+* adds `atomic` function that tries to do perform `getAndLock` + `transform` + specified database operation utilizing `CAS`
 in one step until success or maximum retries have occurred.
 * adds <code>Promise</code> support so that functions call be called with either Node-style callbacks or with Promises.
 
