@@ -20,7 +20,7 @@
   },
   "scripts": {
     "test": "npm run dist && TEST_USE_COUCHBASE_MOCK=true ava -v -s",
-    "cover": "nyc mocha",
+    "cover": "TEST_USE_COUCHBASE_MOCK=true nyc ava -s",
     "docs": "./docs.sh",
     "dist": "node ./node_modules/babel-cli/bin/babel.js lib --out-dir dist",
     "prepublish": "npm run dist"
