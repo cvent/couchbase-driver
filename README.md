@@ -295,6 +295,7 @@ adds <code>Promise</code> support to the instance.
 | options | <code>Object</code> | Options |
 | options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>5</code>. |
 | options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>0</code>. |
+| options.atomicLock | <code>Boolean</code> | Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                     	 standard <code>get</code>. Default: <code>true</code>. |
 
 **Example**  
 ```js
