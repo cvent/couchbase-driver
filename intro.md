@@ -16,7 +16,8 @@ array of missing keys.
 * `remove` also handles *key not found* errors more gracefully.
 * `getAndLock` also handles *key not found* errors more gracefully.
 * adds `atomic` function that tries to do perform `getAndLock` + `transform` + specified database operation utilizing `CAS`
-in one step until success or maximum retries have occurred.
+in one step until success or maximum retries have occurred. By default we use `getAndLock` to lock the document while we
+transform and perform document operation and unlock. Optionally we can use normal `get` function.
 * adds <code>Promise</code> support so that functions call be called with either Node-style callbacks or with Promises.
 
 ## Usage

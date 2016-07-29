@@ -16,7 +16,8 @@ array of missing keys.
 * `remove` also handles *key not found* errors more gracefully.
 * `getAndLock` also handles *key not found* errors more gracefully.
 * adds `atomic` function that tries to do perform `getAndLock` + `transform` + specified database operation utilizing `CAS`
-in one step until success or maximum retries have occurred.
+in one step until success or maximum retries have occurred. By default we use `getAndLock` to lock the document while we
+transform and perform document operation and unlock. Optionally we can use normal `get` function.
 * adds <code>Promise</code> support so that functions call be called with either Node-style callbacks or with Promises.
 
 ## Usage
@@ -121,6 +122,7 @@ Constructs the new instance. This should not be called directly, but rather use 
 | options | <code>Object</code> | Options |
 | options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>5</code>. |
 | options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>0</code>. |
+| options.atomicLock | <code>Boolean</code> | Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                     	 standard <code>get</code>. Default: <code>true</code>. |
 | options.missing | <code>Boolean</code> | Whether to return missing. If <code>false</code> Does not return.                                    Useful for certain contexts. Defalt: <code>true</code>. |
 
 <a name="Driver+OPERATIONS"></a>
@@ -209,7 +211,7 @@ driver.remove('my_doc_key', (err, res) => {
 #### driver.atomic(key, transform, options, fn)
 Performs an "atomic" operation where it tries to first get the document given the <code>key</code>, then perform
 the function <code>transform</code> on the value and then write using the CAS value in the <code>upsert</code>.
-If the upsert fails due to a CAS value error, the whole process is retried.
+If the final document operation fails due to a <code>CAS</code> error, the whole process is retried.
 
 **Kind**: instance method of <code>[Driver](#Driver)</code>  
 
@@ -220,6 +222,7 @@ If the upsert fails due to a CAS value error, the whole process is retried.
 | options | <code>String</code> | Options |
 | options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>5</code>. |
 | options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                             	 See <code>async.retry</code>. Default: <code>0</code>. |
+| options.atomicLock | <code>Boolean</code> | Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                     	 standard <code>get</code>. Default: <code>true</code>. |
 | fn | <code>function</code> | callback |
 
 **Example**  
