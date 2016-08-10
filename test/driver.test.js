@@ -42,10 +42,10 @@ test.cb.before(t => {
   t.truthy(Driver.OPERATIONS.NOOP);
 
   bucket = cluster.openBucket('couchbase_driver_test', err => {
-    t.falsy(err);
+    t.ifError(err);
 
     bucket.manager().flush(err => {
-      t.falsy(err);
+      t.ifError(err);
 
       driver = Driver.create(bucket);
 
@@ -65,7 +65,7 @@ test.cb.before(t => {
 
 test.cb('should get a document using the custom get', t => {
   driver.get(mockData[0].key, (err, res) => {
-    t.falsy(err);
+    t.ifError(err);
 
     t.truthy(res);
     t.true(typeof res === 'object');
@@ -125,7 +125,7 @@ test.cb('should call upsert as is on normal bucket', t => {
   driver.upsert('driver_test_mock_4', {
     somedata: 1234
   }, err => {
-    t.falsy(err);
+    t.ifError(err);
 
     t.end();
   });
@@ -133,7 +133,7 @@ test.cb('should call upsert as is on normal bucket', t => {
 
 test.cb('should call getMulti as is on normal bucket', t => {
   driver.getMulti(['driver_test_mock_3', 'driver_test_mock_4'], (err, res) => {
-    t.falsy(err);
+    t.ifError(err);
 
     t.truthy(res);
     t.true(typeof res === 'object');
