@@ -231,3 +231,44 @@ test.cb('promised: should get an array of documents using the custom get and not
     t.end();
   });
 });
+
+function tranform(docData, data) {
+  if (!docData) {
+    docData = {};
+  }
+  if (!docData.keys) {
+    docData.keys = [];
+  }
+
+  docData.keys.push(data);
+  return {
+    action: Driver.OPERATIONS.UPSERT,
+    value: docData
+  };
+}
+
+test.cb('should properly perform atomic within parallel requests', t => {
+  const dockey = 'cbtest::testdoc1::' + Date.now();
+  asl.parallel([
+    function (pcb) {
+      driver.atomic(dockey, _.partialRight(tranform, 'data1'), pcb);
+    },
+    function (pcb) {
+      driver.atomic(dockey, _.partialRight(tranform, 'data2'), pcb);
+    }
+  ], (err, res) => {
+    t.ifError(err);
+    t.truthy(res);
+
+    bucket.get(dockey, (err, res) => {
+      t.ifError(err);
+      t.truthy(res);
+      t.truthy(res.value);
+      t.truthy(res.value.keys);
+      t.true(Array.isArray(res.value.keys));
+      const actual = res.value.keys.sort();
+      t.deepEqual(actual, ['data1', 'data2']);
+      t.end();
+    });
+  });
+});
