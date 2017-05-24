@@ -24,7 +24,8 @@ const defaultOptions = {
   atomicRetryTimes: 5,
   atomicRetryInterval: 0,
   atomicLock: true,
-  missing: true
+  missing: true,
+  saveOptions: {}
 }
 
 class Driver {
@@ -169,6 +170,7 @@ class Driver {
    *                                               See <code>async.retry</code>. Default: <code>0</code>.
    * @param {Boolean} options.atomicLock - Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the
    *                                       standard <code>get</code>. Default: <code>true</code>.
+   * @param {Object} options.saveOptions - bucket save options
    * @param {Function} fn - callback
    * @example
    * function transform(doc) {
@@ -377,6 +379,7 @@ function _atomicWithLock (key, transform, options, fn) {
 
       const opr = transform(doc ? doc.value : undefined)
       const opts = doc ? { cas: doc.cas } : {}
+      _.assign(opts, options.saveOptions)
       debug(`Driver.atomicWithLock. action: ${opr.action}`)
       if (opr.action === OPERATIONS.NOOP) {
         if (!doc) {
