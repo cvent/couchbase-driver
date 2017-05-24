@@ -20,8 +20,7 @@
   },
   "scripts": {
     "test": "TEST_USE_COUCHBASE_MOCK=true ava -v -s",
-    "cover": "TEST_USE_COUCHBASE_MOCK=true nyc ava -s",
-    "docs": "./docs.sh"
+    "docs": "jsdoc2md \"index.js\" --heading-depth 3 --template readme.hbs > README.md"
   },
   "dependencies": {
     "async": "^2.0.0",
@@ -33,7 +32,6 @@
   "devDependencies": {
     "ava": "~0.19.0",
     "jsdoc-to-markdown": "^3.0.0",
-    "nyc": "^10.3.2",
     "standard": "^10.0.2"
   },
   "ava": {
@@ -52,12 +50,5 @@
     "data",
     "datastore",
     "db"
-  ],
-  "config": {
-    "nyc": {
-      "include": [
-        "dist/*.js"
-      ]
-    }
-  }
+  ]
 }
