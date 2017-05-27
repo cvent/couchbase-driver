@@ -3,6 +3,7 @@ import asl from 'async'
 import test from 'ava'
 import _ from 'lodash'
 import Driver from '../'
+const { errors } = require('couchbase')
 
 const mockData = [{
   key: 'driver_test_mock_1',
@@ -269,6 +270,46 @@ test.cb('should properly perform atomic within parallel requests', t => {
       const actual = res.value.keys.sort()
       t.deepEqual(actual, ['data1', 'data2'])
       t.end()
+    })
+  })
+})
+
+test.cb('should properly perform atomic within parallel requests and save options', t => {
+  const dockey = 'cbtest::testdoc1::' + Date.now()
+  const opts = {
+    saveOptions: {
+      expiry: 3
+    }
+  }
+
+  asl.parallel([
+    function (pcb) {
+      driver.atomic(dockey, _.partialRight(tranform, 'data1'), opts, pcb)
+    },
+    function (pcb) {
+      driver.atomic(dockey, _.partialRight(tranform, 'data2'), opts, pcb)
+    }
+  ], (err, res) => {
+    t.ifError(err)
+    t.truthy(res)
+
+    bucket.get(dockey, (err, res) => {
+      t.ifError(err)
+      t.truthy(res)
+      t.truthy(res.value)
+      t.truthy(res.value.keys)
+      t.true(Array.isArray(res.value.keys))
+      const actual = res.value.keys.sort()
+      t.deepEqual(actual, ['data1', 'data2'])
+
+      setTimeout(() => {
+        bucket.get(dockey, (err, res) => {
+          t.truthy(err)
+          t.truthy(err.code)
+          t.is(err.code, errors.keyNotFound)
+          t.end()
+        })
+      }, 4000)
     })
   })
 })
