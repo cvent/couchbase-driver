@@ -394,7 +394,7 @@ function _atomicWithLock (key, transform, options, fn) {
         if (doc) {
           return this.upsert(key, opr.value, opts, rfn)
         }
-        return this.insert(key, opr.value, rfn)
+        return this.insert(key, opr.value, opts, rfn)
       } else {
         this.unlock(key, doc.cas, (err, doc2) => {
           if (err) {
