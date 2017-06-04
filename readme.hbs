@@ -85,3 +85,21 @@ Note that with Promise style call and multiple keys we do not get misses.
 const results = await driver.get(['mykey1', 'mykey2']);
 console.dir(_.map(results, 'value')); // array of documents
 ```
+
+## API Reference
+
+{{>all-docs~}}
+
+## Debug logging
+
+[debug](https://npmjs.com/package/debug) package is used for debug logging.
+
+```sh
+DEBUG=couchbase-driver node app.js
+```
+
+## License
+
+Copyright 2015 Bojan D.
+
+Licensed under the MIT License.
