@@ -12,7 +12,7 @@
     "url": "http://github.com/bojand/couchbase-driver/issues"
   },
   "engines": {
-    "node": ">=6.9.0"
+    "node": ">=6.0.0"
   },
   "main": "index.js",
   "author": {
