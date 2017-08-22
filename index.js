@@ -12,6 +12,8 @@ const debug = require('debug')('couchbase-driver')
  * @memberof Driver
  */
 const OPERATIONS = {
+  /** Insert operation */
+  INSERT: 'insert',
   /** Upsert operation */
   UPSERT: 'upsert',
   /** Remove operation */
@@ -21,6 +23,9 @@ const OPERATIONS = {
 }
 
 const defaultOptions = {
+  tempRetryTimes: 5,
+  tempRetryInterval: 50,
+  retryTemporaryErrors: true,
   atomicRetryTimes: 5,
   atomicRetryInterval: 0,
   atomicLock: true,
@@ -38,6 +43,12 @@ class Driver {
    *
    * @param {Object} bucket the Couchbase <code>Bucket</code>
    * @param options {Object} Options
+   * @param {Number} options.tempRetryTimes - The number of attempts to make when backing off temporary errors.
+   *                                            See <code>async.retry</code>. Default: <code>5</code>.
+   * @param {Number} options.tempRetryInterval - The time to wait between retries, in milliseconds, when backing off temporary errors .
+   *                                               See <code>async.retry</code>. Default: <code>50</code>.
+   * @param {Boolean} options.atomicLock - Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the
+   *                                       standard <code>get</code>. Default: <code>true</code>.
    * @param {Number} options.atomicRetryTimes - The number of attempts to make within <code>atomic()</code>.
    *                                            See <code>async.retry</code>. Default: <code>5</code>.
    * @param {Number} options.atomicRetryInterval - The time to wait between retries, in milliseconds, within <code>atomic()</code>.
@@ -99,6 +110,27 @@ class Driver {
   }
 
   /**
+   * Determines if error is a "Temporary" error
+   * @param {Error} err - the error to check
+   * @example
+   * Driver.isTemporaryError(err);
+   */
+  static isTemporaryError (err) {
+    let tempError = false
+    if (err && _.isObject(err)) {
+      if (err.code && err.code === errors.temporaryError) {
+        tempError = true
+      } else if (err.message && err.message.indexOf('Temporary failure') >= 0) {
+        tempError = true
+      } else if (err.code && err.code.toString() === '11') {
+        tempError = true
+      }
+    }
+
+    return tempError
+  }
+
+  /**
    * A simplified get. Properly handles key not found errors. In case of multi call, returns array of found
    * and an array of misses.
    * @param {String|Array} keys - a single key or multiple keys
@@ -150,6 +182,36 @@ class Driver {
    */
   remove (key, options, fn) {
     return pCall(this, remove, ...arguments)
+  }
+
+  /**
+   * Our implementation of <code>Bucket.insert</code> that can recover from temporary errors.
+   * @param {String} key - document key to insert
+   * @param {String} value - document contents to insert
+   * @param {Object} options - Options to pass to <code>Bucket.insert</code>
+   * @param {Function} fn - callback
+   * @example
+   * driver.insert('my_doc_key', "doc_contents", (err, res) => {
+   *   if (err) return console.log(err);
+   * });
+   */
+  insert (key, value, options, fn) {
+    return pCall(this, insert, ...arguments)
+  }
+
+  /**
+   * Our implementation of <code>Bucket.upsert</code> that can recover from temporary errors.
+   * @param {String} key - document key to upsert
+   * @param {String} value - document contents to upsert
+   * @param {Object} options - Options to pass to <code>Bucket.upsert</code>
+   * @param {Function} fn - callback
+   * @example
+   * driver.upsert('my_doc_key', "doc_contents", (err, res) => {
+   *   if (err) return console.log(err);
+   * });
+   */
+  upsert (key, value, options, fn) {
+    return pCall(this, upsert, ...arguments)
   }
 
   /**
@@ -314,13 +376,22 @@ function getAndLock (key, options, fn) {
   }
 
   debug(`Driver.getAndLock. key: ${key}`)
-  this.bucket.getAndLock(key, options, (err, getRes) => {
-    if (err && Driver.isKeyNotFound(err)) {
-      err = null
-    }
 
-    return fn(err, getRes)
-  })
+  const opts = _.defaults(options, this.config)
+  const ropts = {
+    times: opts.retryTemporaryErrors ? opts.tempRetryTimes : 1,
+    interval: options.tempRetryInterval,
+    errorFilter: Driver.isTemporaryError
+  }
+
+  async.retry(ropts, rFn => {
+    this.bucket.getAndLock(key, options, (err, getRes) => {
+      if (err && Driver.isKeyNotFound(err)) {
+        err = null
+      }
+      return rFn(err, getRes)
+    })
+  }, fn)
 }
 
 function remove (key, options, fn) {
@@ -343,6 +414,47 @@ function remove (key, options, fn) {
 
     return fn(err, rres)
   })
+}
+
+function insert (key, value, options, fn) {
+  write.apply(this, [OPERATIONS.INSERT, key, value, options, fn])
+}
+
+function upsert (key, value, options, fn) {
+  write.apply(this, [OPERATIONS.UPSERT, key, value, options, fn])
+}
+
+function write (type, key, value, options, fn) {
+  if (options instanceof Function) {
+    fn = options
+    options = {}
+  }
+
+  if ((type !== OPERATIONS.INSERT && type !== OPERATIONS.UPSERT) ||
+    typeof this.bucket[type] !== 'function') {
+    return process.nextTick(() => {
+      return fn(new Error(`Invalid write operation: ${type}`))
+    })
+  }
+
+  const opts = _.defaults(options, this.config)
+  const ropts = {
+    times: opts.retryTemporaryErrors ? opts.tempRetryTimes : 1,
+    interval: options.tempRetryInterval,
+    errorFilter: Driver.isTemporaryError
+  }
+
+  debug(`Driver.${type}. key: ${key} retry options: %j`, ropts)
+
+  if (!key) {
+    return process.nextTick(() => {
+      return fn()
+    })
+  }
+
+  async.retry(ropts, rFn => {
+    this.bucket[type](key, value, options, rFn)
+  }, fn)
 }
 
 function atomic (key, transform, options, fn) {
