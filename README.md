@@ -333,6 +333,7 @@ Driver.isKeyNotFound(err);
 
 #### Driver.isTemporaryError(err)
 Determines if error is a "Temporary" error
+https://developer.couchbase.com/documentation/server/current/sdk/nodejs/handling-error-conditions.html
 
 **Kind**: static method of [<code>Driver</code>](#Driver)  
 

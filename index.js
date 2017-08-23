@@ -111,6 +111,7 @@ class Driver {
 
   /**
    * Determines if error is a "Temporary" error
+   * https://developer.couchbase.com/documentation/server/current/sdk/nodejs/handling-error-conditions.html
    * @param {Error} err - the error to check
    * @example
    * Driver.isTemporaryError(err);
