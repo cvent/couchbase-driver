@@ -12,8 +12,6 @@ const debug = require('debug')('couchbase-driver')
  * @memberof Driver
  */
 const OPERATIONS = {
-  /** Insert operation */
-  INSERT: 'insert',
   /** Upsert operation */
   UPSERT: 'upsert',
   /** Remove operation */
@@ -25,7 +23,7 @@ const OPERATIONS = {
 const defaultOptions = {
   tempRetryTimes: 5,
   tempRetryInterval: 50,
-  retryTemporaryErrors: true,
+  retryTemporaryErrors: false,
   atomicRetryTimes: 5,
   atomicRetryInterval: 0,
   atomicLock: true,
@@ -43,17 +41,19 @@ class Driver {
    *
    * @param {Object} bucket the Couchbase <code>Bucket</code>
    * @param options {Object} Options
+   * @param {Boolean} options.retryTemporaryErrors - Whether to automatically backoff/retry on temporary
+   *                                       couchbase errors. Default: <code>false</code>.
    * @param {Number} options.tempRetryTimes - The number of attempts to make when backing off temporary errors.
    *                                            See <code>async.retry</code>. Default: <code>5</code>.
    * @param {Number} options.tempRetryInterval - The time to wait between retries, in milliseconds, when backing off temporary errors .
    *                                               See <code>async.retry</code>. Default: <code>50</code>.
-   * @param {Boolean} options.atomicLock - Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the
+   * @param {Boolean} options.atomicLock - Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the
    *                                       standard <code>get</code>. Default: <code>true</code>.
    * @param {Number} options.atomicRetryTimes - The number of attempts to make within <code>atomic()</code>.
    *                                            See <code>async.retry</code>. Default: <code>5</code>.
    * @param {Number} options.atomicRetryInterval - The time to wait between retries, in milliseconds, within <code>atomic()</code>.
    *                                               See <code>async.retry</code>. Default: <code>0</code>.
-   * @param {Boolean} options.atomicLock - Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the
+   * @param {Boolean} options.atomicLock - Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the
    *                                       standard <code>get</code>. Default: <code>true</code>.
    * @param {Boolean} options.missing - Whether to return missing. If <code>false</code> Does not return.
    *                                    Useful for certain contexts. Defalt: <code>true</code>.
@@ -231,7 +231,7 @@ class Driver {
    *                                            See <code>async.retry</code>. Default: <code>5</code>.
    * @param {Number} options.atomicRetryInterval - The time to wait between retries, in milliseconds, within <code>atomic()</code>.
    *                                               See <code>async.retry</code>. Default: <code>0</code>.
-   * @param {Boolean} options.atomicLock - Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the
+   * @param {Boolean} options.atomicLock - Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the
    *                                       standard <code>get</code>. Default: <code>true</code>.
    * @param {Object} options.saveOptions - bucket save options
    * @param {Function} fn - callback
@@ -266,11 +266,17 @@ class Driver {
    * adds <code>Promise</code> support to the instance.
    * @param bucket {Object} The Couchbase <code>Bucket</code> instance to wrap.
    * @param options {Object} Options
+   * @param {Boolean} options.retryTemporaryErrors - Whether to automatically backoff/retry on temporary
+   *                                       couchbase errors. Default: <code>false</code>.
+   * @param {Number} options.tempRetryTimes - The number of attempts to make when backing off temporary errors.
+   *                                            See <code>async.retry</code>. Default: <code>5</code>.
+   * @param {Number} options.tempRetryInterval - The time to wait between retries, in milliseconds, when backing off temporary errors .
+   *                                               See <code>async.retry</code>. Default: <code>50</code>.
    * @param {Number} options.atomicRetryTimes - The number of attempts to make within <code>atomic()</code>.
    *                                            See <code>async.retry</code>. Default: <code>5</code>.
    * @param {Number} options.atomicRetryInterval - The time to wait between retries, in milliseconds, within <code>atomic()</code>.
    *                                               See <code>async.retry</code>. Default: <code>0</code>.
-   * @param {Boolean} options.atomicLock - Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the
+   * @param {Boolean} options.atomicLock - Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the
    *                                       standard <code>get</code>. Default: <code>true</code>.
    * @returns {Driver}
    * @example
@@ -297,7 +303,6 @@ class Driver {
         return pCall(this.bucket, this.bucket[fnName], ...arguments)
       }
     })
-
     return new Driver(bucket, options)
   }
 }
@@ -309,9 +314,7 @@ function getDocument (keys, options, fn) {
   }
 
   if (!keys || (Array.isArray(keys) && !keys.length)) {
-    return process.nextTick(() => {
-      return fn()
-    })
+    return process.nextTick(fn)
   }
 
   if (Array.isArray(keys)) {
@@ -402,9 +405,7 @@ function remove (key, options, fn) {
   }
 
   if (!key) {
-    return process.nextTick(() => {
-      return fn()
-    })
+    return process.nextTick(fn)
   }
 
   debug(`Driver.remove. key: ${key}`)
@@ -418,11 +419,11 @@ function remove (key, options, fn) {
 }
 
 function insert (key, value, options, fn) {
-  write.apply(this, [OPERATIONS.INSERT, key, value, options, fn])
+  write.apply(this, ['insert', key, value, options, fn])
 }
 
 function upsert (key, value, options, fn) {
-  write.apply(this, [OPERATIONS.UPSERT, key, value, options, fn])
+  write.apply(this, ['upsert', key, value, options, fn])
 }
 
 function write (type, key, value, options, fn) {
@@ -431,7 +432,7 @@ function write (type, key, value, options, fn) {
     options = {}
   }
 
-  if ((type !== OPERATIONS.INSERT && type !== OPERATIONS.UPSERT) ||
+  if ((type !== 'insert' && type !== 'upsert') ||
     typeof this.bucket[type] !== 'function') {
     return process.nextTick(() => {
       return fn(new Error(`Invalid write operation: ${type}`))
@@ -448,9 +449,7 @@ function write (type, key, value, options, fn) {
   debug(`Driver.${type}. key: ${key} retry options: %j`, ropts)
 
   if (!key) {
-    return process.nextTick(() => {
-      return fn()
-    })
+    return process.nextTick(fn)
   }
 
   async.retry(ropts, rFn => {

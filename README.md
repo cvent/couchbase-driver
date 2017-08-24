@@ -19,6 +19,8 @@ array of missing keys.
 in one step until success or maximum retries have occurred. By default we use `getAndLock` to lock the document while we
 transform and perform document operation and unlock. Optionally we can use normal `get` function.
 * adds <code>Promise</code> support so that functions call be called with either Node-style callbacks or with Promises.
+* adds option to automatically retry operations on [Couchbase temporary errors](https://developer.couchbase.com/documentation/server/current/sdk/nodejs/handling-error-conditions.html). Uses
+[`async.retry`](http://caolan.github.io/async/docs.html#.retry) and is configurable with the <code>tempRetryTimes</code>,  <code>tempRetryInterval</code> and <code>retryTemporaryErrors</code> options (defaults to <code>false</code>).
 
 ## Usage
 
@@ -123,12 +125,13 @@ Constructs the new instance. This should not be called directly, but rather use 
 | --- | --- | --- |
 | bucket | <code>Object</code> | the Couchbase <code>Bucket</code> |
 | options | <code>Object</code> | Options |
+| options.retryTemporaryErrors | <code>Boolean</code> | Whether to automatically backoff/retry on temporary                                       couchbase errors. Default: <code>false</code>. |
 | options.tempRetryTimes | <code>Number</code> | The number of attempts to make when backing off temporary errors.                                            See <code>async.retry</code>. Default: <code>5</code>. |
 | options.tempRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, when backing off temporary errors .                                               See <code>async.retry</code>. Default: <code>50</code>. |
-| options.atomicLock | <code>Boolean</code> | Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
+| options.atomicLock | <code>Boolean</code> | Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
 | options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                            See <code>async.retry</code>. Default: <code>5</code>. |
 | options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                               See <code>async.retry</code>. Default: <code>0</code>. |
-| options.atomicLock | <code>Boolean</code> | Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
+| options.atomicLock | <code>Boolean</code> | Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
 | options.missing | <code>Boolean</code> | Whether to return missing. If <code>false</code> Does not return.                                    Useful for certain contexts. Defalt: <code>true</code>. |
 
 <a name="Driver+OPERATIONS"></a>
@@ -268,7 +271,7 @@ If the final document operation fails due to a <code>CAS</code> error, the whole
 | options | <code>String</code> | Options |
 | options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                            See <code>async.retry</code>. Default: <code>5</code>. |
 | options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                               See <code>async.retry</code>. Default: <code>0</code>. |
-| options.atomicLock | <code>Boolean</code> | Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
+| options.atomicLock | <code>Boolean</code> | Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
 | options.saveOptions | <code>Object</code> | bucket save options |
 | fn | <code>function</code> | callback |
 
@@ -309,7 +312,6 @@ Enum for Database operations
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| INSERT | <code>string</code> | <code>&quot;insert&quot;</code> | Insert operation |
 | UPSERT | <code>string</code> | <code>&quot;upsert&quot;</code> | Upsert operation |
 | REMOVE | <code>string</code> | <code>&quot;remove&quot;</code> | Remove operation |
 | NOOP | <code>string</code> | <code>&quot;noop&quot;</code> | No operation or action |
@@ -357,9 +359,12 @@ adds <code>Promise</code> support to the instance.
 | --- | --- | --- |
 | bucket | <code>Object</code> | The Couchbase <code>Bucket</code> instance to wrap. |
 | options | <code>Object</code> | Options |
+| options.retryTemporaryErrors | <code>Boolean</code> | Whether to automatically backoff/retry on temporary                                       couchbase errors. Default: <code>false</code>. |
+| options.tempRetryTimes | <code>Number</code> | The number of attempts to make when backing off temporary errors.                                            See <code>async.retry</code>. Default: <code>5</code>. |
+| options.tempRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, when backing off temporary errors .                                               See <code>async.retry</code>. Default: <code>50</code>. |
 | options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                            See <code>async.retry</code>. Default: <code>5</code>. |
 | options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                               See <code>async.retry</code>. Default: <code>0</code>. |
-| options.atomicLock | <code>Boolean</code> | Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
+| options.atomicLock | <code>Boolean</code> | Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
 
 **Example**  
 ```js
