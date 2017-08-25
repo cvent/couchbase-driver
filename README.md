@@ -19,6 +19,8 @@ array of missing keys.
 in one step until success or maximum retries have occurred. By default we use `getAndLock` to lock the document while we
 transform and perform document operation and unlock. Optionally we can use normal `get` function.
 * adds <code>Promise</code> support so that functions call be called with either Node-style callbacks or with Promises.
+* adds option to automatically retry operations on [Couchbase temporary errors](https://developer.couchbase.com/documentation/server/current/sdk/nodejs/handling-error-conditions.html). Uses
+[`async.retry`](http://caolan.github.io/async/docs.html#.retry) and is configurable with the <code>tempRetryTimes</code>,  <code>tempRetryInterval</code> and <code>retryTemporaryErrors</code> options (defaults to <code>false</code>).
 
 ## Usage
 
@@ -103,11 +105,14 @@ A simple alternative driver for Couchbase that wraps the `Bucket` from existing 
         * [.get(keys, options, fn)](#Driver+get)
         * [.getAndLock(key, options, fn)](#Driver+getAndLock)
         * [.remove(key, options, fn)](#Driver+remove)
+        * [.insert(key, value, options, fn)](#Driver+insert)
+        * [.upsert(key, value, options, fn)](#Driver+upsert)
         * [.atomic(key, transform, options, fn)](#Driver+atomic)
     * _static_
         * [.OPERATIONS](#Driver.OPERATIONS)
         * [.OPERATIONS](#Driver.OPERATIONS) : <code>enum</code>
         * [.isKeyNotFound(err)](#Driver.isKeyNotFound)
+        * [.isTemporaryError(err)](#Driver.isTemporaryError)
         * [.create(bucket, options)](#Driver.create) ⇒ [<code>Driver</code>](#Driver)
 
 <a name="new_Driver_new"></a>
@@ -120,9 +125,13 @@ Constructs the new instance. This should not be called directly, but rather use 
 | --- | --- | --- |
 | bucket | <code>Object</code> | the Couchbase <code>Bucket</code> |
 | options | <code>Object</code> | Options |
+| options.retryTemporaryErrors | <code>Boolean</code> | Whether to automatically backoff/retry on temporary                                       couchbase errors. Default: <code>false</code>. |
+| options.tempRetryTimes | <code>Number</code> | The number of attempts to make when backing off temporary errors.                                            See <code>async.retry</code>. Default: <code>5</code>. |
+| options.tempRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, when backing off temporary errors .                                               See <code>async.retry</code>. Default: <code>50</code>. |
+| options.atomicLock | <code>Boolean</code> | Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
 | options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                            See <code>async.retry</code>. Default: <code>5</code>. |
 | options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                               See <code>async.retry</code>. Default: <code>0</code>. |
-| options.atomicLock | <code>Boolean</code> | Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
+| options.atomicLock | <code>Boolean</code> | Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
 | options.missing | <code>Boolean</code> | Whether to return missing. If <code>false</code> Does not return.                                    Useful for certain contexts. Defalt: <code>true</code>. |
 
 <a name="Driver+OPERATIONS"></a>
@@ -206,6 +215,46 @@ driver.remove('my_doc_key', (err, res) => {
   if (err) return console.log(err);
 });
 ```
+<a name="Driver+insert"></a>
+
+#### driver.insert(key, value, options, fn)
+Our implementation of <code>Bucket.insert</code> that can recover from temporary errors.
+
+**Kind**: instance method of [<code>Driver</code>](#Driver)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| key | <code>String</code> | document key to insert |
+| value | <code>String</code> | document contents to insert |
+| options | <code>Object</code> | Options to pass to <code>Bucket.insert</code> |
+| fn | <code>function</code> | callback |
+
+**Example**  
+```js
+driver.insert('my_doc_key', "doc_contents", (err, res) => {
+  if (err) return console.log(err);
+});
+```
+<a name="Driver+upsert"></a>
+
+#### driver.upsert(key, value, options, fn)
+Our implementation of <code>Bucket.upsert</code> that can recover from temporary errors.
+
+**Kind**: instance method of [<code>Driver</code>](#Driver)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| key | <code>String</code> | document key to upsert |
+| value | <code>String</code> | document contents to upsert |
+| options | <code>Object</code> | Options to pass to <code>Bucket.upsert</code> |
+| fn | <code>function</code> | callback |
+
+**Example**  
+```js
+driver.upsert('my_doc_key', "doc_contents", (err, res) => {
+  if (err) return console.log(err);
+});
+```
 <a name="Driver+atomic"></a>
 
 #### driver.atomic(key, transform, options, fn)
@@ -222,7 +271,7 @@ If the final document operation fails due to a <code>CAS</code> error, the whole
 | options | <code>String</code> | Options |
 | options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                            See <code>async.retry</code>. Default: <code>5</code>. |
 | options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                               See <code>async.retry</code>. Default: <code>0</code>. |
-| options.atomicLock | <code>Boolean</code> | Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
+| options.atomicLock | <code>Boolean</code> | Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
 | options.saveOptions | <code>Object</code> | bucket save options |
 | fn | <code>function</code> | callback |
 
@@ -282,6 +331,22 @@ Determines if error is a "key not found" error
 ```js
 Driver.isKeyNotFound(err);
 ```
+<a name="Driver.isTemporaryError"></a>
+
+#### Driver.isTemporaryError(err)
+Determines if error is a "Temporary" error
+https://developer.couchbase.com/documentation/server/current/sdk/nodejs/handling-error-conditions.html
+
+**Kind**: static method of [<code>Driver</code>](#Driver)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| err | <code>Error</code> | the error to check |
+
+**Example**  
+```js
+Driver.isTemporaryError(err);
+```
 <a name="Driver.create"></a>
 
 #### Driver.create(bucket, options) ⇒ [<code>Driver</code>](#Driver)
@@ -294,9 +359,12 @@ adds <code>Promise</code> support to the instance.
 | --- | --- | --- |
 | bucket | <code>Object</code> | The Couchbase <code>Bucket</code> instance to wrap. |
 | options | <code>Object</code> | Options |
+| options.retryTemporaryErrors | <code>Boolean</code> | Whether to automatically backoff/retry on temporary                                       couchbase errors. Default: <code>false</code>. |
+| options.tempRetryTimes | <code>Number</code> | The number of attempts to make when backing off temporary errors.                                            See <code>async.retry</code>. Default: <code>5</code>. |
+| options.tempRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, when backing off temporary errors .                                               See <code>async.retry</code>. Default: <code>50</code>. |
 | options.atomicRetryTimes | <code>Number</code> | The number of attempts to make within <code>atomic()</code>.                                            See <code>async.retry</code>. Default: <code>5</code>. |
 | options.atomicRetryInterval | <code>Number</code> | The time to wait between retries, in milliseconds, within <code>atomic()</code>.                                               See <code>async.retry</code>. Default: <code>0</code>. |
-| options.atomicLock | <code>Boolean</code> | Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
+| options.atomicLock | <code>Boolean</code> | Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the                                       standard <code>get</code>. Default: <code>true</code>. |
 
 **Example**  
 ```js

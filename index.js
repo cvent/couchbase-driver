@@ -21,6 +21,9 @@ const OPERATIONS = {
 }
 
 const defaultOptions = {
+  tempRetryTimes: 5,
+  tempRetryInterval: 50,
+  retryTemporaryErrors: false,
   atomicRetryTimes: 5,
   atomicRetryInterval: 0,
   atomicLock: true,
@@ -38,11 +41,19 @@ class Driver {
    *
    * @param {Object} bucket the Couchbase <code>Bucket</code>
    * @param options {Object} Options
+   * @param {Boolean} options.retryTemporaryErrors - Whether to automatically backoff/retry on temporary
+   *                                       couchbase errors. Default: <code>false</code>.
+   * @param {Number} options.tempRetryTimes - The number of attempts to make when backing off temporary errors.
+   *                                            See <code>async.retry</code>. Default: <code>5</code>.
+   * @param {Number} options.tempRetryInterval - The time to wait between retries, in milliseconds, when backing off temporary errors .
+   *                                               See <code>async.retry</code>. Default: <code>50</code>.
+   * @param {Boolean} options.atomicLock - Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the
+   *                                       standard <code>get</code>. Default: <code>true</code>.
    * @param {Number} options.atomicRetryTimes - The number of attempts to make within <code>atomic()</code>.
    *                                            See <code>async.retry</code>. Default: <code>5</code>.
    * @param {Number} options.atomicRetryInterval - The time to wait between retries, in milliseconds, within <code>atomic()</code>.
    *                                               See <code>async.retry</code>. Default: <code>0</code>.
-   * @param {Boolean} options.atomicLock - Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the
+   * @param {Boolean} options.atomicLock - Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the
    *                                       standard <code>get</code>. Default: <code>true</code>.
    * @param {Boolean} options.missing - Whether to return missing. If <code>false</code> Does not return.
    *                                    Useful for certain contexts. Defalt: <code>true</code>.
@@ -96,6 +107,28 @@ class Driver {
     }
 
     return keyNotFound
+  }
+
+  /**
+   * Determines if error is a "Temporary" error
+   * https://developer.couchbase.com/documentation/server/current/sdk/nodejs/handling-error-conditions.html
+   * @param {Error} err - the error to check
+   * @example
+   * Driver.isTemporaryError(err);
+   */
+  static isTemporaryError (err) {
+    let tempError = false
+    if (err && _.isObject(err)) {
+      if (err.code && err.code === errors.temporaryError) {
+        tempError = true
+      } else if (err.message && err.message.indexOf('Temporary failure') >= 0) {
+        tempError = true
+      } else if (err.code && err.code.toString() === '11') {
+        tempError = true
+      }
+    }
+
+    return tempError
   }
 
   /**
@@ -153,6 +186,36 @@ class Driver {
   }
 
   /**
+   * Our implementation of <code>Bucket.insert</code> that can recover from temporary errors.
+   * @param {String} key - document key to insert
+   * @param {String} value - document contents to insert
+   * @param {Object} options - Options to pass to <code>Bucket.insert</code>
+   * @param {Function} fn - callback
+   * @example
+   * driver.insert('my_doc_key', "doc_contents", (err, res) => {
+   *   if (err) return console.log(err);
+   * });
+   */
+  insert (key, value, options, fn) {
+    return pCall(this, insert, ...arguments)
+  }
+
+  /**
+   * Our implementation of <code>Bucket.upsert</code> that can recover from temporary errors.
+   * @param {String} key - document key to upsert
+   * @param {String} value - document contents to upsert
+   * @param {Object} options - Options to pass to <code>Bucket.upsert</code>
+   * @param {Function} fn - callback
+   * @example
+   * driver.upsert('my_doc_key', "doc_contents", (err, res) => {
+   *   if (err) return console.log(err);
+   * });
+   */
+  upsert (key, value, options, fn) {
+    return pCall(this, upsert, ...arguments)
+  }
+
+  /**
    * Performs an "atomic" operation where it tries to first get the document given the <code>key</code>, then perform
    * the function <code>transform</code> on the value and then write using the CAS value in the <code>upsert</code>.
    * If the final document operation fails due to a <code>CAS</code> error, the whole process is retried.
@@ -168,7 +231,7 @@ class Driver {
    *                                            See <code>async.retry</code>. Default: <code>5</code>.
    * @param {Number} options.atomicRetryInterval - The time to wait between retries, in milliseconds, within <code>atomic()</code>.
    *                                               See <code>async.retry</code>. Default: <code>0</code>.
-   * @param {Boolean} options.atomicLock - Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the
+   * @param {Boolean} options.atomicLock - Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the
    *                                       standard <code>get</code>. Default: <code>true</code>.
    * @param {Object} options.saveOptions - bucket save options
    * @param {Function} fn - callback
@@ -203,11 +266,17 @@ class Driver {
    * adds <code>Promise</code> support to the instance.
    * @param bucket {Object} The Couchbase <code>Bucket</code> instance to wrap.
    * @param options {Object} Options
+   * @param {Boolean} options.retryTemporaryErrors - Whether to automatically backoff/retry on temporary
+   *                                       couchbase errors. Default: <code>false</code>.
+   * @param {Number} options.tempRetryTimes - The number of attempts to make when backing off temporary errors.
+   *                                            See <code>async.retry</code>. Default: <code>5</code>.
+   * @param {Number} options.tempRetryInterval - The time to wait between retries, in milliseconds, when backing off temporary errors .
+   *                                               See <code>async.retry</code>. Default: <code>50</code>.
    * @param {Number} options.atomicRetryTimes - The number of attempts to make within <code>atomic()</code>.
    *                                            See <code>async.retry</code>. Default: <code>5</code>.
    * @param {Number} options.atomicRetryInterval - The time to wait between retries, in milliseconds, within <code>atomic()</code>.
    *                                               See <code>async.retry</code>. Default: <code>0</code>.
-   * @param {Boolean} options.atomicLock - Wether to use <code>getAndLock</code> in <code>atomic()</code> or just the
+   * @param {Boolean} options.atomicLock - Whether to use <code>getAndLock</code> in <code>atomic()</code> or just the
    *                                       standard <code>get</code>. Default: <code>true</code>.
    * @returns {Driver}
    * @example
@@ -234,7 +303,6 @@ class Driver {
         return pCall(this.bucket, this.bucket[fnName], ...arguments)
       }
     })
-
     return new Driver(bucket, options)
   }
 }
@@ -246,9 +314,7 @@ function getDocument (keys, options, fn) {
   }
 
   if (!keys || (Array.isArray(keys) && !keys.length)) {
-    return process.nextTick(() => {
-      return fn()
-    })
+    return process.nextTick(fn)
   }
 
   if (Array.isArray(keys)) {
@@ -314,13 +380,22 @@ function getAndLock (key, options, fn) {
   }
 
   debug(`Driver.getAndLock. key: ${key}`)
-  this.bucket.getAndLock(key, options, (err, getRes) => {
-    if (err && Driver.isKeyNotFound(err)) {
-      err = null
-    }
 
-    return fn(err, getRes)
-  })
+  const opts = _.defaults(options, this.config)
+  const ropts = {
+    times: opts.retryTemporaryErrors ? opts.tempRetryTimes : 1,
+    interval: options.tempRetryInterval,
+    errorFilter: Driver.isTemporaryError
+  }
+
+  async.retry(ropts, rFn => {
+    this.bucket.getAndLock(key, options, (err, getRes) => {
+      if (err && Driver.isKeyNotFound(err)) {
+        err = null
+      }
+      return rFn(err, getRes)
+    })
+  }, fn)
 }
 
 function remove (key, options, fn) {
@@ -330,9 +405,7 @@ function remove (key, options, fn) {
   }
 
   if (!key) {
-    return process.nextTick(() => {
-      return fn()
-    })
+    return process.nextTick(fn)
   }
 
   debug(`Driver.remove. key: ${key}`)
@@ -343,6 +416,45 @@ function remove (key, options, fn) {
 
     return fn(err, rres)
   })
+}
+
+function insert (key, value, options, fn) {
+  write.apply(this, ['insert', key, value, options, fn])
+}
+
+function upsert (key, value, options, fn) {
+  write.apply(this, ['upsert', key, value, options, fn])
+}
+
+function write (type, key, value, options, fn) {
+  if (options instanceof Function) {
+    fn = options
+    options = {}
+  }
+
+  if ((type !== 'insert' && type !== 'upsert') ||
+    typeof this.bucket[type] !== 'function') {
+    return process.nextTick(() => {
+      return fn(new Error(`Invalid write operation: ${type}`))
+    })
+  }
+
+  const opts = _.defaults(options, this.config)
+  const ropts = {
+    times: opts.retryTemporaryErrors ? opts.tempRetryTimes : 1,
+    interval: options.tempRetryInterval,
+    errorFilter: Driver.isTemporaryError
+  }
+
+  debug(`Driver.${type}. key: ${key} retry options: %j`, ropts)
+
+  if (!key) {
+    return process.nextTick(fn)
+  }
+
+  async.retry(ropts, rFn => {
+    this.bucket[type](key, value, options, rFn)
+  }, fn)
 }
 
 function atomic (key, transform, options, fn) {
