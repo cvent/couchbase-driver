@@ -6,3 +6,6 @@ dump.rdb
 npm-debug.log
 .nyc_output
 test
+.DS_Store
+readme.hbs
+ISSUE_TEMPLATE.md
