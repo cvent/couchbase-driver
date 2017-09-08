@@ -21,6 +21,7 @@ transform and perform document operation and unlock. Optionally we can use norma
 * adds <code>Promise</code> support so that functions call be called with either Node-style callbacks or with Promises.
 * adds option to automatically retry operations on [Couchbase temporary errors](https://developer.couchbase.com/documentation/server/current/sdk/nodejs/handling-error-conditions.html). Uses
 [`async.retry`](http://caolan.github.io/async/docs.html#.retry) and is configurable with the <code>tempRetryTimes</code>,  <code>tempRetryInterval</code> and <code>retryTemporaryErrors</code> options (defaults to <code>false</code>).
+* adds `getServerVersion` function that attempts to get the server version from the cluster.
 
 ## Usage
 

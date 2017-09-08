@@ -21,6 +21,7 @@ transform and perform document operation and unlock. Optionally we can use norma
 * adds <code>Promise</code> support so that functions call be called with either Node-style callbacks or with Promises.
 * adds option to automatically retry operations on [Couchbase temporary errors](https://developer.couchbase.com/documentation/server/current/sdk/nodejs/handling-error-conditions.html). Uses
 [`async.retry`](http://caolan.github.io/async/docs.html#.retry) and is configurable with the <code>tempRetryTimes</code>,  <code>tempRetryInterval</code> and <code>retryTemporaryErrors</code> options (defaults to <code>false</code>).
+* adds `getServerVersion` function that attempts to get the server version from the cluster.
 
 ## Usage
 
@@ -108,6 +109,7 @@ A simple alternative driver for Couchbase that wraps the `Bucket` from existing 
         * [.insert(key, value, options, fn)](#Driver+insert)
         * [.upsert(key, value, options, fn)](#Driver+upsert)
         * [.atomic(key, transform, options, fn)](#Driver+atomic)
+        * [.getServerVersion(fn)](#Driver+getServerVersion)
     * _static_
         * [.OPERATIONS](#Driver.OPERATIONS)
         * [.OPERATIONS](#Driver.OPERATIONS) : <code>enum</code>
@@ -286,8 +288,28 @@ function transform(doc) {
 }
 
 driver.atomic('my_doc_key', transform, (err, res) => {
-  if(err) return console.dir(err);
+  if(err) return console.log(err);
   console.dir(res);
+});
+```
+<a name="Driver+getServerVersion"></a>
+
+#### driver.getServerVersion(fn)
+Attempts to get the lowest couchbase server version from the nodes in the cluster
+**Warning**
+This depends on undocumented internals of Node.js couchbase library
+
+**Kind**: instance method of [<code>Driver</code>](#Driver)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| fn | <code>function</code> | callback |
+
+**Example**  
+```js
+driver.getServerVersion((err, version) => {
+  if(err) return console.log(err);
+  console.log(version);
 });
 ```
 <a name="Driver.OPERATIONS"></a>

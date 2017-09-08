@@ -313,3 +313,15 @@ test.cb('should properly perform atomic within parallel requests and save option
     })
   })
 })
+
+test.cb('should get server version', t => {
+  if (process.env.TEST_USE_COUCHBASE_MOCK) {
+    return t.end()
+  }
+
+  driver.getServerVersion((err, version) => {
+    t.ifError(err)
+    t.is(version, '4.6.1')
+    t.end()
+  })
+})

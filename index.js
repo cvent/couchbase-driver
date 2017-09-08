@@ -1,4 +1,6 @@
-const _ = require('lodash')
+const http = require('http')
+const semver = require('semver')
+const defaults = require('lodash.defaults')
 const async = require('async')
 const pCall = require('promisify-call')
 const { errors } = require('couchbase')
@@ -60,7 +62,7 @@ class Driver {
    */
   constructor (bucket, options = {}) {
     this.bucket = bucket
-    this.config = _.defaults(options, defaultOptions)
+    this.config = defaults(options, defaultOptions)
   }
 
   /**
@@ -92,7 +94,7 @@ class Driver {
    */
   static isKeyNotFound (err) {
     let keyNotFound = false
-    if (err && _.isObject(err)) {
+    if (err && isObject(err)) {
       if (err.code && err.code === errors.keyNotFound) {
         keyNotFound = true
       } else if (err.message && err.message === 'key not found') {
@@ -118,7 +120,7 @@ class Driver {
    */
   static isTemporaryError (err) {
     let tempError = false
-    if (err && _.isObject(err)) {
+    if (err && isObject(err)) {
       if (err.code && err.code === errors.temporaryError) {
         tempError = true
       } else if (err.message && err.message.indexOf('Temporary failure') >= 0) {
@@ -245,7 +247,7 @@ class Driver {
    * }
    *
    * driver.atomic('my_doc_key', transform, (err, res) => {
-   *   if(err) return console.dir(err);
+   *   if(err) return console.log(err);
    *   console.dir(res);
    * });
    */
@@ -259,6 +261,21 @@ class Driver {
 
   _atomicNoLock (key, transform, options, fn) {
     return pCall(this, _atomicNoLock, ...arguments)
+  }
+
+  /**
+   * Attempts to get the lowest couchbase server version from the nodes in the cluster
+   * **Warning**
+   * This depends on undocumented internals of Node.js couchbase library
+   * @param {Function} fn - callback
+   * @example
+   * driver.getServerVersion((err, version) => {
+   *   if(err) return console.log(err);
+   *   console.log(version);
+   * });
+   */
+  getServerVersion (fn) {
+    return pCall(this, getServerVersion, ...arguments)
   }
 
   /**
@@ -320,7 +337,7 @@ function getDocument (keys, options, fn) {
   if (Array.isArray(keys)) {
     debug(`Driver.getMulti. keys: ${keys}`)
     this.bucket.getMulti(keys, (err, getRes) => {
-      if (err && _.isObject(err)) {
+      if (err && isObject(err)) {
         return fn(err)
       }
 
@@ -381,7 +398,7 @@ function getAndLock (key, options, fn) {
 
   debug(`Driver.getAndLock. key: ${key}`)
 
-  const opts = _.defaults(options, this.config)
+  const opts = defaults(options, this.config)
   const ropts = {
     times: opts.retryTemporaryErrors ? opts.tempRetryTimes : 1,
     interval: options.tempRetryInterval,
@@ -439,7 +456,7 @@ function write (type, key, value, options, fn) {
     })
   }
 
-  const opts = _.defaults(options, this.config)
+  const opts = defaults(options, this.config)
   const ropts = {
     times: opts.retryTemporaryErrors ? opts.tempRetryTimes : 1,
     interval: options.tempRetryInterval,
@@ -476,7 +493,7 @@ function _atomicWithLock (key, transform, options, fn) {
     options = {}
   }
 
-  const opts = _.defaults(options, this.config)
+  const opts = defaults(options, this.config)
   const ropts = {
     times: opts.atomicRetryTimes,
     interval: options.atomicRetryInterval
@@ -491,7 +508,7 @@ function _atomicWithLock (key, transform, options, fn) {
 
       const opr = transform(doc ? doc.value : undefined)
       const opts = doc ? { cas: doc.cas } : {}
-      _.assign(opts, options.saveOptions)
+      Object.assign(opts, options.saveOptions)
       debug(`Driver.atomicWithLock. action: ${opr.action}`)
       if (opr.action === OPERATIONS.NOOP) {
         if (!doc) {
@@ -526,7 +543,7 @@ function _atomicNoLock (key, transform, options, fn) {
     options = {}
   }
 
-  const opts = _.defaults(options, this.config)
+  const opts = defaults(options, this.config)
   const ropts = {
     times: opts.atomicRetryTimes,
     interval: options.atomicRetryInterval
@@ -555,6 +572,107 @@ function _atomicNoLock (key, transform, options, fn) {
       return this.remove(key, opts, rfn)
     })
   }, fn)
+}
+
+function isObject (value) {
+  const type = typeof value
+  return value != null && (type === 'object' || type === 'function')
+}
+
+function getNodeUri (bucket) {
+  if (!bucket ||
+    !bucket._cb ||
+    !bucket._execAndUriParse ||
+    typeof bucket._execAndUriParse !== 'function') {
+    return
+  }
+  const dbnodeFn = bucket._cb.getMgmtNode || bucket._cb.getViewNode
+  return bucket._execAndUriParse(dbnodeFn)
+}
+
+function getNodeDataRequestOptions (bucket) {
+  const nodeUri = getNodeUri(bucket)
+  if (!nodeUri) {
+    return
+  }
+  const reqOpts = {
+    agent: this.httpAgent,
+    hostname: nodeUri.hostname,
+    port: nodeUri.port,
+    path: '/pools/default',
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  }
+  if (this._password) {
+    reqOpts.auth = this._username + ':' + this._password
+  }
+  return reqOpts
+}
+
+function getNodeData (bucket, fn) {
+  const reqOpts = getNodeDataRequestOptions(bucket)
+  if (!reqOpts) {
+    return fn(new Error('Could not get server node data'))
+  }
+  const req = http.request(reqOpts, res => {
+    const statusCode = res.statusCode
+    let error
+    if (statusCode !== 200) {
+      error = new Error(`Node request failed. Status Code: ${statusCode}`)
+    }
+
+    if (error) {
+      res.resume()
+      return fn(error)
+    }
+
+    res.setEncoding('utf8')
+    let rawData = ''
+    res.on('data', chunk => { rawData += chunk })
+    res.on('end', () => {
+      try {
+        const parsedData = JSON.parse(rawData)
+        return fn(null, parsedData)
+      } catch (e) {
+        return fn(e)
+      }
+    })
+  })
+
+  req.on('error', (e) => {
+    fn(e)
+  })
+
+  req.end()
+}
+
+function getServerVersion (fn) {
+  getNodeData(this.bucket, (err, nodeData) => {
+    if (err) {
+      return fn(err)
+    }
+    if (!nodeData ||
+      !nodeData.nodes ||
+      !Array.isArray(nodeData.nodes) ||
+      !nodeData.nodes.length) {
+      return fn(new Error('No couchbase server node data'))
+    }
+    let versions = nodeData.nodes.map(n => n.version)
+    versions = versions.map(vStr => {
+      const i = vStr.indexOf('-')
+      if (i <= 0) {
+        return vStr
+      }
+      return vStr.substring(0, i)
+    })
+    const version = versions.reduce((lv, v) => {
+      if (semver.lt(lv, v)) {
+        return lv
+      }
+      return v
+    }, '1000.1000.1000')
+    return fn(null, version)
+  })
 }
 
 module.exports = Driver
