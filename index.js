@@ -33,6 +33,17 @@ const defaultOptions = {
   saveOptions: {}
 }
 
+const syncFunctions = [
+  'disconnect',
+  'invalidateQueryCache',
+  'lookupIn',
+  'manager',
+  'mutateIn',
+  'query',
+  'setTranscoder',
+  'touch'
+]
+
 class Driver {
   /**
    * @classdesc A simple alternative driver for Couchbase that wraps the `Bucket` from existing driver and improves
@@ -309,15 +320,22 @@ class Driver {
     let fnNames = []
     let p
     for (p in bucketPrototype) {
-      if (bucketPrototype.hasOwnProperty(p) && p.charAt(0) !== '_' &&
-        typeof bucketPrototype[p] === 'function' && !Driver.prototype[p] && p !== 'constructor') {
+      if (bucketPrototype.hasOwnProperty(p) &&
+        p.charAt(0) !== '_' &&
+        typeof bucketPrototype[p] === 'function' &&
+        !Driver.prototype[p] &&
+        p !== 'constructor') {
         fnNames.push(p)
       }
     }
 
     fnNames.forEach(fnName => {
       Driver.prototype[fnName] = function () {
-        return pCall(this.bucket, this.bucket[fnName], ...arguments)
+        if (syncFunctions.indexOf(p) < 0) {
+          return this.bucket[fnName](...arguments)
+        } else {
+          return pCall(this.bucket, this.bucket[fnName], ...arguments)
+        }
       }
     })
     return new Driver(bucket, options)
