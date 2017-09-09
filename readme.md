@@ -295,7 +295,8 @@ driver.atomic('my_doc_key', transform, (err, res) => {
 <a name="Driver+getServerVersion"></a>
 
 #### driver.getServerVersion(fn)
-Attempts to get the lowest couchbase server version from the nodes in the cluster
+Attempts to get the lowest couchbase server version from the nodes in the cluster.
+
 **Warning**
 This depends on undocumented internals of Node.js couchbase library
 

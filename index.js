@@ -275,7 +275,8 @@ class Driver {
   }
 
   /**
-   * Attempts to get the lowest couchbase server version from the nodes in the cluster
+   * Attempts to get the lowest couchbase server version from the nodes in the cluster.
+   *
    * **Warning**
    * This depends on undocumented internals of Node.js couchbase library
    * @param {Function} fn - callback
