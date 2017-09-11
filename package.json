@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "async": "^2.5.0",
-    "couchbase": "^2.3.7",
+    "couchbase": "~2.4.0",
     "debug": "^3.0.0",
     "lodash.defaults": "^4.2.0",
     "promisify-call": "^2.0.4",
