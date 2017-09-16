@@ -3,7 +3,7 @@ import asl from 'async'
 import test from 'ava'
 import _ from 'lodash'
 import Driver from '../'
-const { errors } = require('couchbase')
+const errors = couchbase.errors
 
 const mockData = [{
   key: 'driver_test_mock_1',
@@ -312,4 +312,42 @@ test.cb('should properly perform atomic within parallel requests and save option
       }, 4000)
     })
   })
+})
+
+test.cb('should get server version', t => {
+  if (process.env.TEST_USE_COUCHBASE_MOCK) {
+    return t.end()
+  }
+
+  driver.getServerVersion((err, version) => {
+    t.ifError(err)
+    t.is(version, '4.6.1')
+    t.end()
+  })
+})
+
+test('should work with mutateIn sync function', t => {
+  if (process.env.TEST_USE_COUCHBASE_MOCK) {
+    return t.pass()
+  }
+
+  const mb = driver.mutateIn('someKey')
+  t.truthy(mb)
+  t.true(typeof mb.execute === 'function')
+})
+
+test('should work with lookupIn sync function', t => {
+  if (process.env.TEST_USE_COUCHBASE_MOCK) {
+    return t.pass()
+  }
+
+  const lb = driver.lookupIn('someKey')
+  t.truthy(lb)
+  t.true(typeof lb.execute === 'function')
+})
+
+test('should work with manager sync function', t => {
+  const m = driver.manager()
+  t.truthy(m)
+  t.true(typeof m.getDesignDocument === 'function')
 })
