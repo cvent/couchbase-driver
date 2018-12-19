@@ -34,7 +34,7 @@ const cluster = getCluser()
 let bucket = null
 let driver = null
 
-test.cb.before(t => {
+test.before.cb(t => {
   // check exports
   t.truthy(Driver)
   t.truthy(Driver.OPERATIONS)
@@ -43,10 +43,10 @@ test.cb.before(t => {
   t.truthy(Driver.OPERATIONS.NOOP)
 
   bucket = cluster.openBucket('couchbase_driver_test', err => {
-    t.ifError(err)
+    t.falsy(err)
 
     bucket.manager().flush(err => {
-      t.ifError(err)
+      t.falsy(err)
 
       driver = Driver.create(bucket)
 
@@ -66,7 +66,7 @@ test.cb.before(t => {
 
 test.cb('should get a document using the custom get', t => {
   driver.get(mockData[0].key, (err, res) => {
-    t.ifError(err)
+    t.falsy(err)
 
     t.truthy(res)
     t.true(typeof res === 'object')
@@ -126,7 +126,7 @@ test.cb('should call upsert as is on normal bucket', t => {
   driver.upsert('driver_test_mock_4', {
     somedata: 1234
   }, err => {
-    t.ifError(err)
+    t.falsy(err)
 
     t.end()
   })
@@ -134,7 +134,7 @@ test.cb('should call upsert as is on normal bucket', t => {
 
 test.cb('should call getMulti as is on normal bucket', t => {
   driver.getMulti(['driver_test_mock_3', 'driver_test_mock_4'], (err, res) => {
-    t.ifError(err)
+    t.falsy(err)
 
     t.truthy(res)
     t.true(typeof res === 'object')
@@ -221,6 +221,19 @@ test('promised: should get an array of documents using the custom get and not ge
   t.deepEqual(actual, expected)
 })
 
+test('promised: getAndLock and unlock', async t => {
+  t.plan(5)
+
+  const res = await driver.getAndLock(mockData[0].key)
+  t.truthy(res)
+  t.true(typeof res === 'object')
+  t.true(typeof res.cas === 'object')
+  t.true(typeof res.value === 'object')
+  t.deepEqual(res.value, mockData[0].value)
+
+  await driver.unlock(mockData[0].key, res.cas)
+})
+
 test.cb('promised: should get an array of documents using the custom get and not get misses using then() style', t => {
   const keys = ['driver_test_mock_1', 'driver_test_mock_2', 'driver_test_mock_123', 'driver_test_mock_3']
   driver.get(keys).then(results => {
@@ -258,11 +271,11 @@ test.cb('should properly perform atomic within parallel requests', t => {
       driver.atomic(dockey, _.partialRight(tranform, 'data2'), pcb)
     }
   ], (err, res) => {
-    t.ifError(err)
+    t.falsy(err)
     t.truthy(res)
 
     bucket.get(dockey, (err, res) => {
-      t.ifError(err)
+      t.falsy(err)
       t.truthy(res)
       t.truthy(res.value)
       t.truthy(res.value.keys)
@@ -290,11 +303,11 @@ test.cb('should properly perform atomic within parallel requests and save option
       driver.atomic(dockey, _.partialRight(tranform, 'data2'), opts, pcb)
     }
   ], (err, res) => {
-    t.ifError(err)
+    t.falsy(err)
     t.truthy(res)
 
     bucket.get(dockey, (err, res) => {
-      t.ifError(err)
+      t.falsy(err)
       t.truthy(res)
       t.truthy(res.value)
       t.truthy(res.value.keys)
@@ -320,7 +333,7 @@ test.cb('should get server version', t => {
   }
 
   driver.getServerVersion((err, version) => {
-    t.ifError(err)
+    t.falsy(err)
     t.is(version, '4.6.1')
     t.end()
   })

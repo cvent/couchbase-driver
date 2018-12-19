@@ -332,7 +332,7 @@ class Driver {
 
     fnNames.forEach(fnName => {
       Driver.prototype[fnName] = function () {
-        if (syncFunctions.indexOf(p) < 0) {
+        if (syncFunctions.indexOf(fnName) >= 0) {
           return this.bucket[fnName](...arguments)
         } else {
           return pCall(this.bucket, this.bucket[fnName], ...arguments)
