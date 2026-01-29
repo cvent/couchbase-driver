@@ -23,7 +23,7 @@
     "docs": "jsdoc2md \"index.js\" --heading-depth 3 --template readme.hbs > readme.md"
   },
   "dependencies": {
-    "async": "^2.6.1",
+    "async": "^2.6.4",
     "debug": "^3.2.6",
     "lodash.defaults": "^4.2.0",
     "promisify-call": "^2.0.4",
