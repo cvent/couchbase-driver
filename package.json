@@ -30,11 +30,11 @@
     "semver": "^5.6.0"
   },
   "peerDependencies": {
-    "couchbase": "^2.4.0"
+    "couchbase": "^2.6.12"
   },
   "devDependencies": {
     "ava": "~1.0.0",
-    "couchbase": "^2.6.2",
+    "couchbase": "^2.6.12",
     "jsdoc-to-markdown": "^4.0.0",
     "lodash": "^4.17.11",
     "standard": "^12.0.0"
